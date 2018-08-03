@@ -19,11 +19,16 @@ struct MyTest {
     void test1() { testPass("test1"); }
     void test2() { testPass("test2"); }
 };
+
+struct myException : public std::logic_error {
+    myException() : logic_error("Test exception") {}
+};
+
 }//namespace
 
 MAIN(testUnitTest)
 {
-    testPlan(10);
+    testPlan(13);
     try {
         TEST_METHOD(MyTest, test1);
         TEST_METHOD(MyTest, test2);
@@ -43,6 +48,15 @@ MAIN(testUnitTest)
 
         testFieldEqual<pvd::PVInt>(S, "alarm.severity", 1);
         testFieldEqual<pvd::PVString>(S, "alarm.message", "hello")<<" More";
+
+        testThrows(myException, throw myException());
+        testThrows(std::logic_error, throw myException());
+
+        // Check that testThrows() detects a throw of the wrong type.
+        // By marking it as #TODO the harness expects it to fail.
+        testTodoBegin("Testing testThrows");
+        testThrows(myException, throw std::logic_error("Expected!"));
+        testTodoEnd();
 
     }catch(std::exception& e){
         testAbort("Unhandled exception: %s", e.what());

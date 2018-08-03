@@ -123,13 +123,27 @@ inline testPassx testNotEqualx(const char *nLHS, const char *nRHS, const LHS& l,
  */
 #define testTrue(B) ::detail::testPassx(!!(B))<<#B
 
-/** Test that a given block throws an exception
+/** Test that a given block throws a specific exception type
  *
  @code
  testThrows(std::runtime_error, somefunc(5))
  @endcode
  */
-#define testThrows(EXC, CODE) try{ CODE; testFail("unexpected success of " #CODE); }catch(EXC& e){testPass("catch expected exception: %s", e.what());}
+#define testThrows(EXC, CODE) \
+    try { \
+        CODE; \
+        testFail("Unexpected success of " #CODE); \
+    } \
+    catch (EXC &e) { \
+        testPass("Caught expected exception: %s", e.what()); \
+    } \
+    catch (std::exception &e) { \
+        testFail("Caught wrong exception type (expected %s): %s", \
+            #EXC, e.what()); \
+    } \
+    catch (...) { \
+        testFail("Caught non-std exception, expected " #EXC); \
+    }
 
 /** Print test output w/o testing
  *
