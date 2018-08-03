@@ -319,6 +319,18 @@ static void testBadRequests()
     testOk1(!C->createRequest(request));
     testOk(C->getMessage().find("bad request") != string::npos,
         "'bad request' error detected");
+
+    // These requests should fail, but don't at the moment
+    testTodoBegin("Parser not strict enough");
+
+    testThrows(std::runtime_error,
+        createRequest("record[x=a[),y=b(]]"));
+    testThrows(std::runtime_error,
+        createRequest("record[x=a)]field(a[y=b(])"));
+    testThrows(std::runtime_error,
+        createRequest("][this-can=be*garbagerecord[]I-am(also)ignored+putField()etc."));
+
+    testTodoEnd();
 }
 
 static
@@ -416,7 +428,7 @@ static void testMask()
 
 MAIN(testCreateRequest)
 {
-    testPlan(130);
+    testPlan(133);
     testCreateRequestInternal();
     testBadRequests();
     testMask();
