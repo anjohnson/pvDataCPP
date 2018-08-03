@@ -129,7 +129,7 @@ struct CreateRequestImpl {
             if(pos==string::npos) break;
             numValues++;
             index = pos +1;
-	}
+        }
         vector<string> valueList(numValues,"");
         index=0;
         for(size_t i=0; i<numValues; i++) {
@@ -313,142 +313,140 @@ struct CreateRequestImpl {
     PVStructurePtr createRequest(
         string const & crequest)
     {
+        string request = crequest;
+        if (!request.empty()) removeBlanks(request);
+        if (request.empty())
         {
-            string request = crequest;
-            if (!request.empty()) removeBlanks(request);
-            if (request.empty())
-            {
-                return pvDataCreate->createPVStructure(fieldCreate->createStructure());
-            }
-            size_t offsetRecord = request.find("record[");
-            size_t offsetField = request.find("field(");
-            size_t offsetPutField = request.find("putField(");
-            size_t offsetGetField = request.find("getField(");
-            if(offsetRecord==string::npos
-            && offsetField==string::npos
-            && offsetPutField==string::npos
-            && offsetGetField==string::npos)
-            {
-                 request = "field(" + request + ")";
-                 offsetField = request.find("field(");
-            }
-            int numParan = 0;
-            int numBrace = 0;
-            int numBracket = 0;
-            for(size_t i=0; i< request.length() ; ++i) {
-                char chr = request[i];
-                if(chr=='(') numParan++;
-                if(chr==')') numParan--;
-                if(chr=='{') numBrace++;
-                if(chr=='}') numBrace--;
-                if(chr=='[') numBracket++;
-                if(chr==']') numBracket--;
-            }
-            if(numParan!=0) {
-                ostringstream oss;
-                oss << "mismatched () " << numParan;
-                throw std::runtime_error(oss.str());
-            }
-            if(numBrace!=0) {
-                ostringstream oss;
-                oss << "mismatched {} " << numBrace;
-                throw std::runtime_error(oss.str());
-            }
-            if(numBracket!=0) {
-                ostringstream oss;
-                oss << "mismatched [] " << numBracket;
-                throw std::runtime_error(oss.str());
-            }
-            vector<Node> top;
-            try {
-                if(offsetRecord!=string::npos) {
-                    fullFieldName = "record";
-                    size_t openBracket = request.find('[', offsetRecord);
-                    size_t closeBracket = request.find(']', openBracket);
-                    if(closeBracket==string::npos) {
-                        throw std::runtime_error(request.substr(offsetRecord) +
-                            "record[ does not have matching ]");
-                    }
-                    if(closeBracket-openBracket > 3) {
-                        Node node("record");
-                        Node optNode = createRequestOptions(
-                                request.substr(openBracket+1,closeBracket-openBracket-1));
-                        node.nodes.push_back(optNode);
-                        top.push_back(node);
-                    }
-                }
-                if(offsetField!=string::npos) {
-                    fullFieldName = "field";
-                    Node node("field");
-                    size_t openParan = request.find('(', offsetField);
-                    size_t closeParan = request.find(')', openParan);
-                    if(closeParan==string::npos) {
-                        throw std::runtime_error(request.substr(offsetField)
-                                + " field( does not have matching )");
-                    }
-                    if(closeParan>openParan+1) {
-                        createSubNode(node,request.substr(openParan+1,closeParan-openParan-1));
-                    }
-                    top.push_back(node);
-                }
-                if(offsetGetField!=string::npos) {
-                    fullFieldName = "getField";
-                    Node node("getField");
-                    size_t openParan = request.find('(', offsetGetField);
-                    size_t closeParan = request.find(')', openParan);
-                    if(closeParan==string::npos) {
-                        throw std::runtime_error(request.substr(offsetField)
-                                + " getField( does not have matching )");
-                    }
-                    if(closeParan>openParan+1) {
-                        createSubNode(node,request.substr(openParan+1,closeParan-openParan-1));
-                    }
-                    top.push_back(node);
-                }
-                if(offsetPutField!=string::npos) {
-                    fullFieldName = "putField";
-                    Node node("putField");
-                    size_t openParan = request.find('(', offsetPutField);
-                    size_t closeParan = request.find(')', openParan);
-                    if(closeParan==string::npos) {
-                        throw std::runtime_error(request.substr(offsetField)
-                                + " putField( does not have matching )");
-                    }
-                    if(closeParan>openParan+1) {
-                        createSubNode(node,request.substr(openParan+1,closeParan-openParan-1));
-                    }
-                    top.push_back(node);
-                }
-            } catch (std::exception &e) {
-                throw std::runtime_error(std::string("while creating Structure exception ")+e.what());
-            }
-            size_t num = top.size();
-            StringArray names(num);
-            FieldConstPtrArray fields(num);
-            for(size_t i=0; i<num; ++i) {
-                Node node = top[i];
-                names[i] = node.name;
-                vector<Node> subNode = node.nodes;
-                if(subNode.empty()) {
-                    fields[i] = fieldCreate->createStructure();
-                } else {
-                    fields[i] = createSubStructure(subNode);
-                }
-            }
-            StructureConstPtr structure = fieldCreate->createStructure(names, fields);
-            if(!structure) throw std::invalid_argument("bad request " + crequest);
-            PVStructurePtr pvStructure = pvDataCreate->createPVStructure(structure);
-            for(size_t i=0; i<optionList.size(); ++i) {
-                OptionPair pair = optionList[i];
-                string name = pair.name;
-                string value = pair.value;
-                PVStringPtr pvField = pvStructure->getSubField<PVString>(name);
-                if(!pvField) throw std::invalid_argument("bad request " + crequest);
-                pvField->put(value);
-            }
-            optionList.clear();
-            return pvStructure;
+            return pvDataCreate->createPVStructure(fieldCreate->createStructure());
         }
+        size_t offsetRecord = request.find("record[");
+        size_t offsetField = request.find("field(");
+        size_t offsetPutField = request.find("putField(");
+        size_t offsetGetField = request.find("getField(");
+        if(offsetRecord==string::npos
+        && offsetField==string::npos
+        && offsetPutField==string::npos
+        && offsetGetField==string::npos)
+        {
+             request = "field(" + request + ")";
+             offsetField = request.find("field(");
+        }
+        int numParan = 0;
+        int numBrace = 0;
+        int numBracket = 0;
+        for(size_t i=0; i< request.length() ; ++i) {
+            char chr = request[i];
+            if(chr=='(') numParan++;
+            if(chr==')') numParan--;
+            if(chr=='{') numBrace++;
+            if(chr=='}') numBrace--;
+            if(chr=='[') numBracket++;
+            if(chr==']') numBracket--;
+        }
+        if(numParan!=0) {
+            ostringstream oss;
+            oss << "mismatched () " << numParan;
+            throw std::runtime_error(oss.str());
+        }
+        if(numBrace!=0) {
+            ostringstream oss;
+            oss << "mismatched {} " << numBrace;
+            throw std::runtime_error(oss.str());
+        }
+        if(numBracket!=0) {
+            ostringstream oss;
+            oss << "mismatched [] " << numBracket;
+            throw std::runtime_error(oss.str());
+        }
+        vector<Node> top;
+        try {
+            if(offsetRecord!=string::npos) {
+                fullFieldName = "record";
+                size_t openBracket = request.find('[', offsetRecord);
+                size_t closeBracket = request.find(']', openBracket);
+                if(closeBracket==string::npos) {
+                    throw std::runtime_error(request.substr(offsetRecord) +
+                        "record[ does not have matching ]");
+                }
+                if(closeBracket-openBracket > 3) {
+                    Node node("record");
+                    Node optNode = createRequestOptions(
+                            request.substr(openBracket+1,closeBracket-openBracket-1));
+                    node.nodes.push_back(optNode);
+                    top.push_back(node);
+                }
+            }
+            if(offsetField!=string::npos) {
+                fullFieldName = "field";
+                Node node("field");
+                size_t openParan = request.find('(', offsetField);
+                size_t closeParan = request.find(')', openParan);
+                if(closeParan==string::npos) {
+                    throw std::runtime_error(request.substr(offsetField)
+                            + " field( does not have matching )");
+                }
+                if(closeParan>openParan+1) {
+                    createSubNode(node,request.substr(openParan+1,closeParan-openParan-1));
+                }
+                top.push_back(node);
+            }
+            if(offsetGetField!=string::npos) {
+                fullFieldName = "getField";
+                Node node("getField");
+                size_t openParan = request.find('(', offsetGetField);
+                size_t closeParan = request.find(')', openParan);
+                if(closeParan==string::npos) {
+                    throw std::runtime_error(request.substr(offsetField)
+                            + " getField( does not have matching )");
+                }
+                if(closeParan>openParan+1) {
+                    createSubNode(node,request.substr(openParan+1,closeParan-openParan-1));
+                }
+                top.push_back(node);
+            }
+            if(offsetPutField!=string::npos) {
+                fullFieldName = "putField";
+                Node node("putField");
+                size_t openParan = request.find('(', offsetPutField);
+                size_t closeParan = request.find(')', openParan);
+                if(closeParan==string::npos) {
+                    throw std::runtime_error(request.substr(offsetField)
+                            + " putField( does not have matching )");
+                }
+                if(closeParan>openParan+1) {
+                    createSubNode(node,request.substr(openParan+1,closeParan-openParan-1));
+                }
+                top.push_back(node);
+            }
+        } catch (std::exception &e) {
+            throw std::runtime_error(std::string("while creating Structure exception ")+e.what());
+        }
+        size_t num = top.size();
+        StringArray names(num);
+        FieldConstPtrArray fields(num);
+        for(size_t i=0; i<num; ++i) {
+            Node node = top[i];
+            names[i] = node.name;
+            vector<Node> subNode = node.nodes;
+            if(subNode.empty()) {
+                fields[i] = fieldCreate->createStructure();
+            } else {
+                fields[i] = createSubStructure(subNode);
+            }
+        }
+        StructureConstPtr structure = fieldCreate->createStructure(names, fields);
+        if(!structure) throw std::invalid_argument("bad request " + crequest);
+        PVStructurePtr pvStructure = pvDataCreate->createPVStructure(structure);
+        for(size_t i=0; i<optionList.size(); ++i) {
+            OptionPair pair = optionList[i];
+            string name = pair.name;
+            string value = pair.value;
+            PVStringPtr pvField = pvStructure->getSubField<PVString>(name);
+            if(!pvField) throw std::invalid_argument("bad request " + crequest);
+            pvField->put(value);
+        }
+        optionList.clear();
+        return pvStructure;
     }
 
 
