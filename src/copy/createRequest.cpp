@@ -12,6 +12,7 @@
 
 #include <pv/pvData.h>
 #include <pv/lock.h>
+#include <pv/json.h>
 #include <pv/createRequest.h>
 
 using namespace epics::pvData;
@@ -318,6 +319,11 @@ struct CreateRequestImpl {
         if (request.empty())
         {
             return pvDataCreate->createPVStructure(fieldCreate->createStructure());
+        }
+        if (request[0] == '{' && request[request.length()-1] == '}')
+        {
+            std::istringstream strm(request);
+            return parseJSON(strm);
         }
         size_t offsetRecord = request.find("record[");
         size_t offsetField = request.find("field(");
