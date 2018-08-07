@@ -24,19 +24,21 @@ struct args {
     const pvd::JSONPrintOptions& opts;
 
     unsigned indent;
+    std::string step;
 
     args(std::ostream& strm,
          const pvd::JSONPrintOptions& opts)
         :strm(strm)
         ,opts(opts)
         ,indent(opts.indent)
+        ,step(std::string("        ").substr(0, opts.step ? opts.step : 1))
     {}
 
     void doIntent() {
         if(!opts.multiLine) return;
         strm.put('\n');
         unsigned i=indent;
-        while(i--) strm.put(' ');
+        while(i--) strm<<step;
     }
 };
 
