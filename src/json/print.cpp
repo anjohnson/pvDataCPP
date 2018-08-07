@@ -34,7 +34,7 @@ struct args {
         ,step(std::string("        ").substr(0, opts.step ? opts.step : 1))
     {}
 
-    void doIntent() {
+    void doIndent() {
         if(!opts.multiLine) return;
         strm.put('\n');
         unsigned i=indent;
@@ -58,13 +58,13 @@ void show_struct(args& A, const pvd::PVStructure* fld)
     {
         if(i!=0)
             A.strm.put(',');
-        A.doIntent();
+        A.doIndent();
         A.strm<<'\"'<<names[i]<<"\": ";
         show_field(A, children[i].get());
     }
 
     A.indent--;
-    A.doIntent();
+    A.doIndent();
     A.strm.put('}');
 }
 
@@ -117,7 +117,7 @@ void show_field(args& A, const pvd::PVField* fld)
         for(size_t i=0, N=arr.size(); i<N; i++) {
             if(i!=0)
                 A.strm.put(',');
-            A.doIntent();
+            A.doIndent();
             if(arr[i])
                 show_struct(A, arr[i].get());
             else
@@ -125,7 +125,7 @@ void show_field(args& A, const pvd::PVField* fld)
         }
 
         A.indent--;
-        A.doIntent();
+        A.doIndent();
         A.strm.put(']');
     }
         break;
