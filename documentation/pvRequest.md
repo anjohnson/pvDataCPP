@@ -265,3 +265,75 @@ structure
     structure putField
 
 ```
+
+## Suggestions
+
+It is trivial to augment the parser so that it also accepts a JSON-formatted
+object, while still supporting the existing syntax for backwards compatibility.
+A request string can never begin with an open-brace character `{` since the
+first component of the string must either be a `fieldName` or one of the
+keywords `record`, `field`, `getField` or `putField`. Thus I have a modified
+version of `createRequest()` that detects strings that start with `{` and end
+with `}` and passes them to an alternative parser.
+
+EPICS Base has included a JSON parser since the first 3.15-series release, and
+Michael has already added both `printJSON()` and `parseJSON()` functions to the
+pvDataCPP module. I also modified my `pvrDump` test program to output the
+pvRequest structure from the parser using `printJSON()` with the following
+results:
+
+```
+tux% pvrDump -j 'record[x=1]field(a) putField(a),getField(a)'
+{
+  "record": {
+    "_options": {
+      "x": "1"
+    }
+  },
+  "field": {
+    "a": {
+    }
+  },
+  "getField": {
+    "a": {
+    }
+  },
+  "putField": {
+    "a": {
+    }
+  }
+}
+```
+
+The JSON version is longer than the original because of JSON's requirement for
+quotes around all strings, and because of the explicit `_options` field-name.
+Here is the same input displayed on one line, then used as input to the modified
+parser to show that it works:
+
+```
+tux% pvrDump -j -1 'record[x=1]field(a) putField(a),getField(a)'
+{"record": {"_options": {"x": "1"}},"field": {"a": {}},"getField": {"a": {}},"putField": {"a": {}}}
+
+tux% pvrDump '{"record": {"_options": {"x": "1"}},"field": {"a": {}},"getField": {"a": {}},"putField": {"a": {}}}'
+structure 
+    structure field
+        structure a
+    structure getField
+        structure a
+    structure putField
+        structure a
+    structure record
+        structure _options
+            string x 1
+
+```
+
+We could reduce the length of the JSON version by adopting the IOC's "relaxed
+JSON" or JSON-5 syntax, which allows quotes to be omitted for strings that only
+contain a limited subset of characters. We have already been asked to allow this
+to be used elsewhere, but this will require modifying the parser. After doing
+that the JSON below will parse into the structure shown above:
+
+```
+{record:{_options:{x:1}},field:{a:{}},getField:{a:{}},putField:{a:{}}}
+```
