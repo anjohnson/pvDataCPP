@@ -278,9 +278,9 @@ with `}` and passes them to an alternative parser.
 
 EPICS Base has included a JSON parser since the first 3.15-series release, and
 Michael has already added both `printJSON()` and `parseJSON()` functions to the
-pvDataCPP module. I also modified my `pvrDump` test program to output the
-pvRequest structure from the parser using `printJSON()` with the following
-results:
+pvDataCPP module, so my modified version just passes JSON strings to that. I
+also modified my `pvrDump` test program to be able to output the pvRequest
+structure from the parser using `printJSON()` with the following results:
 
 ```
 tux% pvrDump -j 'record[x=1]field(a) putField(a),getField(a)'
@@ -326,6 +326,15 @@ structure
         structure _options
             string x 1
 
+tux% pvrDump -j -1 value,timeStamp
+{"field":{"value":{},"timeStamp":{}}}
+
+tux% pvget -r '{"field":{"value":{},"timeStamp":{}}}' -p ca anj:ai
+anj:ai
+structure 
+    double value 0
+    time_t timeStamp 2106-02-07T00:28:16.000 0
+
 ```
 
 We could reduce the length of the JSON version by adopting the IOC's "relaxed
@@ -337,3 +346,24 @@ that the JSON below will parse into the structure shown above:
 ```
 {record:{_options:{x:1}},field:{a:{}},getField:{a:{}},putField:{a:{}}}
 ```
+
+The new parser does permit pvRequest structures to be created that were not
+possible/legal with the old parser, and this may cause problems with some
+servers or providers, for example:
+
+```
+tux% pvget -r '{"field":["value","timeStamp"]}' -p ca anj:ai
+CA client library tcp receive thread terminating due to C++ exception "anj:ai DbdToPv::activate illegal pvRequest structure 
+    string[] field [value,timeStamp]
+"
+CA.Client.Exception...............................................
+    Warning: "Virtual circuit disconnect"
+    Context: "tux.aps.anl.gov:5064"
+    Source File: ../cac.cpp line 1237
+    Current Time: Wed Aug 08 2018 13:09:38.961470693
+..................................................................
+Timeout
+```
+
+Interestingly pvaSrv from EPICS-4.6.0 doesn't crash or show any error messages
+when given the above pvRequest, it just returns all known fields.
