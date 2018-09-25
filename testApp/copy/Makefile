@@ -11,3 +11,5 @@ TESTPROD_HOST += testPVCopy
 testPVCopy_SRCS += testPVCopy.cpp
 testHarness_SRCS += testPVCopy.cpp
 TESTS += testPVCopy
+
+PROD_HOST += pvrDump
